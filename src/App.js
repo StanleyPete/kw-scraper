@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
+import axios from 'axios'
 import './App.css'
 
 function App() {
 
   const [numerKsiag, setNumerKsiag] = useState('')
+  const [aktywanZakladka, setAktywnaZakladka] = useState('zapis-do-pdf')
   const [error, setError] = useState('') 
-  const [listaKsiag, setListaKsiag] = useState([])
+  
 
   
   const handleChange = (event) => {
@@ -13,10 +15,13 @@ function App() {
     setError('')
   }
 
+
   const handleSubmit = (event) => {
     event.preventDefault()
 
     const wprowadzoneNumery = numerKsiag.split(/[,;\s]+/).map(numer => numer.trim()).filter(numer => numer !== '')
+
+    let listaKsiag = []
 
     for (const numer of wprowadzoneNumery) {
       const wprowadzonyNumer = numer.split('/')
@@ -40,32 +45,101 @@ function App() {
         return
       }
 
-      const nowyNumer = {
+      let nowaKsiega = {
         kodWydzialu,
         numerKsiegiWieczystej,
         cyfraKontrolna,
       }
 
-      setListaKsiag((prevList) => [...prevList, nowyNumer])
+      listaKsiag.push(nowaKsiega)
 
       setNumerKsiag('')
     }
-
     
+    handleScrape(listaKsiag)
   }
 
-  useEffect(() => {
-    console.log('Aktualna lista ksiąg:', listaKsiag)
-  }, [listaKsiag])
+
+  
+
+
+  const handleScrape = async (ksiegi) => {
+      
+    try {
+      const response = await axios.post('http://localhost:5000/scrape', {
+        ksiegi
+      })
+
+      
+      if (response.status === 200) {
+        alert(response.data.message)
+      } else {
+        alert('Błąd: ' + response.data.error)
+      }
+    } catch (error) {
+        console.error('Błąd przy komunikacji z serwerem:', error)
+        alert('Wystąpił błąd przy łączeniu z serwerem.')
+    }
+  }
+
+
+  const handleTabClick = (nazwaZakladki) => {
+    setAktywnaZakladka(nazwaZakladki)
+  }
+
 
   return (
     <div className="App">
-      <div className="mode">
-        <button>Zapisz do PDF</button>
-        <button>Inna funkcjonalnosc</button>
-        <button>Inna funkcjonalnosc</button>
+      <div className="warstwa-tla">
+        <div className="funkcja">
+          <button
+          onClick={() => handleTabClick('zapis-do-pdf')}
+          className={aktywanZakladka === 'zapis-do-pdf' ? 'active' : ''}
+          >
+            Zapisz do PDF
+          </button>
+          <button
+          onClick={() => handleTabClick('pobierz-wlascicieli')}
+          className={aktywanZakladka === 'pobierz-wlascicieli' ? 'active' : ''}
+          >
+            Pobierz właścicieli
+          </button>
+          <button onClick={() => handleTabClick('inna-funkcja')}
+            className={aktywanZakladka === 'inna-funkcja' ? 'active' : ''}>
+              Inna funkcjonalnosc
+          </button>
+        </div>
       </div>
       <form className='zapisz-do-pdf' onSubmit={handleSubmit}>
+         {/* Dodanie radio buttonów w obrębie formularza */}
+         <div className='typ-ksiegi-wieczystej'>
+          <label>
+            <input
+              type="radio"
+              value="opcja1"
+              name='typKsiegi'
+            />
+            Aktualna treść KW
+          </label>
+          <label>
+            <input
+              type="radio"
+              value="opcja2"
+              name='typKsiegi'
+              defaultChecked
+            />
+            Zupełna treść KW
+          </label>
+          <label>
+            <input
+              type="radio"
+              value="opcja3"
+              name='typKsiegi'
+            />
+            Aktualna treść KW - dotychczasowa postać
+          </label>
+        </div>
+
         <span>Wpisz numery ksiąg wieczystych:</span>
         <textarea 
            onChange={handleChange}
