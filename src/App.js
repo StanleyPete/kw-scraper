@@ -8,15 +8,21 @@ function App() {
   const [numeryKsiag, setNumeryKsiag] = useState('')
   const [aktywanZakladka, setAktywnaZakladka] = useState('zapis-do-pdf')
   // Stany do przechowywania zaznaczonych wartości:
-  const [typKsiegi, setTypKsiegi] = useState('zupelna-tresc-kw')
+  const [typKsiegi, setTypKsiegi] = useState('Zupełna treść KW')
   const [stronyDzialyDoPobrania, setStronyDzialyDoPobrania] = useState({
-    'okladka': true,
-    'dzial-i-o': true,
-    'dzial-i-sp': true,
-    'dzial-ii': true,
-    'dzial-iii': true,
-    'dzial-iv': true,
+    'Okładka': true,
+    'Dział I-O': true,
+    'Dział I-Sp': true,
+    'Dział II': true,
+    'Dział III': true,
+    'Dział IV': true,
   })
+
+  const typyKsiegi = [
+    'Aktualna treść KW',
+    'Zupełna treść KW',
+    'Aktualna treść KW - dotychczasowa postać',
+  ]
   
   
   const handleZmianaTextArea = (event) => {
@@ -101,10 +107,16 @@ function App() {
   const handleScrape = async (ksiegi, typKsiegi, stronyDzialyDoPobrania) => {
       
     try {
+    
+      const wybraneStronyDzialy = Object.entries(stronyDzialyDoPobrania)
+        .filter(([key, value]) => value) 
+        .map(([key]) => key);
+
+
       const response = await axios.post('http://localhost:5000/scrape', {
         ksiegi,
         typKsiegi,
-        stronyDzialyDoPobrania,
+        stronyDzialyDoPobrania: wybraneStronyDzialy
       })
 
       
@@ -124,6 +136,14 @@ function App() {
     setAktywnaZakladka(nazwaZakladki)
   }
 
+  useEffect(() => {
+    if (typKsiegi === 'Aktualna treść KW') {
+      setStronyDzialyDoPobrania((prevState) => ({
+        ...prevState,
+        Okładka: false,
+      }));
+    }
+  }, [typKsiegi]);
 
   return (
     <div className="App">
@@ -157,17 +177,13 @@ function App() {
          {/* Typ księgi wieczystej*/}
          <div className='typ-ksiegi-wieczystej'>
             <p>Zaznacz typ księgi wieczystej:</p>
-            {[
-              { value: 'aktualna-tresc-kw', label: 'Aktualna treść KW' },
-              { value: 'zupelna-tresc-kw', label: 'Zupełna treść KW' },
-              { value: 'aktualna-tresc-kw-dotychczasowa-postac', label: 'Aktualna treść KW - dotychczasowa postać' },
-            ].map(({ value, label }) => (
-              <label key={value}>
+            {typyKsiegi.map((label, index) => (
+              <label key={index}>
                 <input
                   type="radio"
-                  value={value}
-                  name='typKsiegi'
-                  checked={typKsiegi === value}
+                  value={label}
+                  name="typKsiegi"
+                  checked={typKsiegi === label} 
                   onChange={handleTypKsiegi}
                 />
                 {label}
@@ -178,23 +194,18 @@ function App() {
         {/* Strony/działy do pobrania*/}
         <div className="strony-dzialy-do-pobrania">
             <p>Zaznacz strony/działy do pobrania:</p>
-            {[
-              { value: 'okladka', label: 'Okładka' },
-              { value: 'dzial-i-o', label: 'Dział I-O' },
-              { value: 'dzial-i-sp', label: 'Dział I-Sp' },
-              { value: 'dzial-ii', label: 'Dział II' },
-              { value: 'dzial-iii', label: 'Dział III' },
-              { value: 'dzial-iv', label: 'Dział IV' }
-            ].map(({ value, label }) => (
-              <label key={value}>
+            {Object.keys(stronyDzialyDoPobrania)
+            .filter((key) => typKsiegi !== 'Aktualna treść KW' || key !== 'Okładka')
+            .map((key) => (
+              <label key={key}>
                 <input
                   type="checkbox"
-                  value={value}
-                  name={value}
-                  checked={stronyDzialyDoPobrania[value]}
+                  value={key}
+                  name={key}
+                  checked={stronyDzialyDoPobrania[key]} 
                   onChange={handleStronyDzialyDoPobrania}
                 />
-                {label}
+                {key} {/* Klucz stanu użyty jako etykieta */}
               </label>
             ))}
         </div>

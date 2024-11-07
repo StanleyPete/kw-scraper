@@ -1,8 +1,9 @@
 const express = require('express')
 const cors = require('cors')
 const puppeteer = require('puppeteer')
-const fs = require('fs');
-const path = require('path');
+const fs = require('fs')
+const path = require('path')
+const { PDFDocument } = require('pdf-lib')
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -59,15 +60,52 @@ app.post('/scrape', async (req, res) => {
 
             await page.waitForSelector('#przyciskWydrukDotychczasowy', { visible: true })
 
-            const pdfPath = path.join(__dirname, `${ksiega.numerKsiegiWieczystej}.pdf`)
-    
-            await page.pdf({
-            path: pdfPath,
-            format: 'A4',  
-            printBackground: true,  
-            width: '1280px',  
-            height: '800px', 
-            })
+            if (typKsiegi === 'Aktualna treść KW') {
+                await page.waitForSelector('#przyciskWydrukZwykly', { visible: true })
+                await page.click('#przyciskWydrukZwykly')
+            } else if (typKsiegi === 'Zupełna treść KW') {
+                await page.waitForSelector('#przyciskWydrukZupelny', { visible: true })
+                await page.click('#przyciskWydrukZupelny')
+            } else if (typKsiegi === 'Aktualna treść KW - dotychczasowa postać') {
+                await page.waitForSelector('#przyciskWydrukDotychczasowy', { visible: true })
+                await page.click('#przyciskWydrukDotychczasowy')
+            }
+            
+            await page.waitForSelector('input[value="Powrót"]', { visible: true })
+
+            // Stwórz nowy dokument PDF
+            const pdfDoc = await PDFDocument.create()
+
+            for (const stronaDzial of stronyDzialyDoPobrania) {
+                // Klikamy w odpowiedni input
+                await page.click(`input[value="${stronaDzial}"]`);
+        
+                // Czekamy, aż załaduje się strona i będzie gotowa do kliknięcia "Powrót"
+                await page.waitForSelector('input[value="Powrót"]', { visible: true });
+
+                const pdfPathh = path.join(__dirname, `${ksiega.numerKsiegiWieczystej}puppeter.pdf`)
+                // Robimy zrzut ekranu i dodajemy go do PDF
+                const pdfStrona = await page.pdf({
+                    path: pdfPathh,
+                    format: 'A4',
+                    printBackground: true, 
+                    width: '1280px',
+                    height: '800px'
+                  })
+                
+                // Ładujemy wygenerowany PDF jako dokument pdf-lib
+                const tempPdfDoc = await PDFDocument.load(pdfStrona)
+                  
+                // Dodajemy stronę z tego PDF do naszego głównego dokumentu
+                const [pageToAdd] = await pdfDoc.copyPages(tempPdfDoc, [0])
+                pdfDoc.addPage(pageToAdd);
+            }
+
+
+            // Zapisujemy połączony PDF
+            const pdfPath = path.join(__dirname, `${ksiega.numerKsiegiWieczystej}.pdf`);
+            const pdfBytes = await pdfDoc.save();
+            fs.writeFileSync(pdfPath, pdfBytes); // Zapisz plik PDF na dysku
 
         }
         
