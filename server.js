@@ -18,7 +18,8 @@ app.use(express.json())
 app.post('/scrape', async (req, res) => {
     try {
         
-        const { ksiegi } = req.body
+        console.log(req.body)
+        const { ksiegi, typKsiegi, stronyDzialyDoPobrania } = req.body
         
         const browser = await puppeteer.launch({
             headless: true, 
