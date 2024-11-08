@@ -15,6 +15,7 @@ app.use(cors({
 app.use(express.json())
 
 
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 app.post('/scrape', async (req, res) => {
     try {
@@ -24,7 +25,7 @@ app.post('/scrape', async (req, res) => {
         
         // Otwarcie przeglądarki
         const browser = await puppeteer.launch({
-            headless: true, 
+            headless: false, 
             args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -33,9 +34,10 @@ app.post('/scrape', async (req, res) => {
         })
 
         // Pętla iterująca po wszystkich księgach przekazanych z front-end
-        for(let ksiega of ksiegi) {
-            //Utworzenie pliku pdf do którego zapisywane są strony/działy
-            const pdfDoc = await PDFDocument.create()
+        const otworzZakladke = async (ksiega, index) => {
+            
+            // Opóźnienie przed tworzeniem nowej zakładki
+            await delay(index * 1000)
 
             //Nowa zakładka
             const page = await browser.newPage()
@@ -78,6 +80,8 @@ app.post('/scrape', async (req, res) => {
             
             await page.waitForSelector('input[value="Powrót"]', { visible: true })
 
+            //Utworzenie pliku pdf do którego zapisywane są strony/działy
+            const pdfDoc = await PDFDocument.create()
             
             //Pętla iterująca po wszystkich stronach/działach przekazanych z front-end
             for (const stronaDzial of stronyDzialyDoPobrania) {
@@ -88,7 +92,7 @@ app.post('/scrape', async (req, res) => {
                 //Oczekiwanie na zakończenie zapytania sieciowego
                 await page.waitForNavigation({ waitUntil: 'networkidle2' })
 
-                const pdfPathh = path.join(__dirname, `${ksiega.numerKsiegiWieczystej}puppeter.pdf`)
+                // const pdfPathh = path.join(__dirname, `${ksiega.numerKsiegiWieczystej}puppeter.pdf`)
                
                 // Sprawdzanie wymiarów strony
                 const dimensions = await page.evaluate(() => {
@@ -106,7 +110,6 @@ app.post('/scrape', async (req, res) => {
 
                 //Tworzenie pdf dla wybranej strony/działu:
                 const pdfBuffer = await page.pdf({
-                    path: pdfPathh,
                     printBackground: true,
                     width: `${dimensions.width}px`,
                     height: `${dimensions.height}px`,
@@ -126,8 +129,17 @@ app.post('/scrape', async (req, res) => {
              const pdfPath = path.join(__dirname, `${ksiega.kodWydzialu}-${ksiega.numerKsiegiWieczystej}-${ksiega.cyfraKontrolna}.pdf`);
              const finalPdfBytes = await pdfDoc.save()
              fs.writeFileSync(pdfPath, finalPdfBytes)
+
+             // Zamknij stronę po zakończeniu
+            await page.close()
         }
+
+        // Uruchamianie operacji równocześnie z opóźnieniem
+        const wyszukajKsiegiOrazZapisz = ksiegi.map((ksiega, index) => otworzZakladke(ksiega, index))
         
+        //Oczekiwanie na zakończenie zapisu dla wszystkich ksiąg
+        await Promise.all(wyszukajKsiegiOrazZapisz)
+
         await browser.close()
 
         
