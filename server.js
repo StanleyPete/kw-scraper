@@ -14,10 +14,41 @@ app.use(cors({
   }))
 app.use(express.json())
 
-
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 app.post('/scrape', async (req, res) => {
+
+    const poczekajNaZaladowanieStrony = async (page, maxRetries = 5, strona) => {
+        let attempt = 0
+    
+        while (attempt < maxRetries) {
+            try {
+                await page.waitForNavigation({ waitUntil: 'load', timeout: 10000 })
+                return
+            } catch {
+                try {
+                    if (strona === 'strona-główna'){
+                        await page.waitForSelector('button#wyszukaj', { timeout: 5000 })
+                    } else if (strona === 'wyniki-wyszukiwania'){
+                        await page.waitForSelector('button#powrotDoMenuGlownego', { timeout: 5000 })
+                    } else if (strona === 'księga'){
+                        await page.waitForSelector('input[value="Powrót"]', { timeout: 5000 });
+                    }
+                    return
+                } catch (error) {
+                    attempt++
+                    if (attempt < maxRetries) {
+                        await page.reload({ waitUntil: 'load' })
+                    } else {
+                        throw new Error('Błąd ładowania strony po maksymalnej liczbie prób.')
+                    }  
+                }
+            }
+        }
+    }
+    
+    
+    //FUNKCJA SCRAPUJACA
     try {
         //Parametry/właściwości przekazane z front-end
         console.log(req.body)
@@ -55,10 +86,10 @@ app.post('/scrape', async (req, res) => {
             })
 
             //Wejście na stronę:
-            await page.goto('https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW?komunikaty=true&kontakt=true&okienkoSerwisowe=false', { waitUntil: 'networkidle2' })
-    
-            await page.waitForSelector('#wyszukaj', { visible: true })
-
+            await page.goto('https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW?komunikaty=true&kontakt=true&okienkoSerwisowe=false', { waitUntil: 'load' })
+            
+            await poczekajNaZaladowanieStrony(page, 5, 'strona-główna')
+            
             //Wypełnienie formularza:
             await page.type('#kodWydzialuInput', ksiega.kodWydzialu)
             await page.type('#numerKsiegiWieczystej', ksiega.numerKsiegiWieczystej)
@@ -67,7 +98,7 @@ app.post('/scrape', async (req, res) => {
             //Szukaj:
             await page.click('#wyszukaj')
 
-            await page.waitForSelector('#przyciskWydrukDotychczasowy', { visible: true })
+            await poczekajNaZaladowanieStrony(page, 5, 'wyniki-wyszukiwania')
 
             //Sprawdzenie typu księgi przekazanej z front-end
             if (typKsiegi === 'Aktualna treść KW') {
@@ -78,22 +109,21 @@ app.post('/scrape', async (req, res) => {
                 await page.click('#przyciskWydrukDotychczasowy')
             }
             
-            await page.waitForSelector('input[value="Powrót"]', { visible: true })
+            await poczekajNaZaladowanieStrony(page, 5, 'księga')
 
             //Utworzenie pliku pdf do którego zapisywane są strony/działy
             const pdfDoc = await PDFDocument.create()
+       
             
             //Pętla iterująca po wszystkich stronach/działach przekazanych z front-end
             for (const stronaDzial of stronyDzialyDoPobrania) {
 
                 //Wejście do odpowiedniej strony/działu
-                await page.click(`input[value="${stronaDzial}"]`);
+                await page.click(`input[value="${stronaDzial}"]`)
         
                 //Oczekiwanie na zakończenie zapytania sieciowego
-                await page.waitForNavigation({ waitUntil: 'networkidle2' })
-
-                // const pdfPathh = path.join(__dirname, `${ksiega.numerKsiegiWieczystej}puppeter.pdf`)
-               
+                await poczekajNaZaladowanieStrony(page, 5, 'księga')
+           
                 // Sprawdzanie wymiarów strony
                 const dimensions = await page.evaluate(() => {
                     return {
@@ -101,7 +131,7 @@ app.post('/scrape', async (req, res) => {
                         height: document.body.clientHeight,
                     }
                 })
-                
+   
                 //Ustawienie wymiarów viewport do PDF
                 await page.setViewport({
                     width: dimensions.width,
@@ -121,6 +151,7 @@ app.post('/scrape', async (req, res) => {
 
                 //Iteracja przez wszystkie strony załadowanego dokumentu
                 const pagesToAdd = await pdfDoc.copyPages(tempPdfDoc, tempPdfDoc.getPageIndices())
+
                 pagesToAdd.forEach(page => pdfDoc.addPage(page))
                 
             }
