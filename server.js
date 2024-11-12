@@ -4,6 +4,7 @@ const puppeteer = require('puppeteer')
 const fs = require('fs')
 const path = require('path')
 const { PDFDocument } = require('pdf-lib')
+const { Document, Packer, Paragraph, TextRun } = require('docx');
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -18,6 +19,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 app.post('/scrape', async (req, res) => {
 
+    //Załadowanie strony
     const poczekajNaZaladowanieStrony = async (page, maxRetries = 5, strona) => {
         let attempt = 0
     
@@ -32,7 +34,7 @@ app.post('/scrape', async (req, res) => {
                     } else if (strona === 'wyniki-wyszukiwania'){
                         await page.waitForSelector('button#powrotDoMenuGlownego', { timeout: 5000 })
                     } else if (strona === 'księga'){
-                        await page.waitForSelector('input[value="Powrót"]', { timeout: 5000 });
+                        await page.waitForSelector('input[value="Powrót"]', { timeout: 5000 })
                     }
                     return
                 } catch (error) {
@@ -46,7 +48,8 @@ app.post('/scrape', async (req, res) => {
             }
         }
     }
-    
+
+   
     
     //FUNKCJA SCRAPUJACA
     try {
@@ -63,6 +66,8 @@ app.post('/scrape', async (req, res) => {
             '--disable-blink-features=AutomationControlled', 
             ],
         })
+
+       
 
         // Pętla iterująca po wszystkich księgach przekazanych z front-end
         const otworzZakladke = async (ksiega, index) => {
@@ -111,10 +116,18 @@ app.post('/scrape', async (req, res) => {
             
             await poczekajNaZaladowanieStrony(page, 5, 'księga')
 
+
             //Utworzenie pliku pdf do którego zapisywane są strony/działy
             const pdfDoc = await PDFDocument.create()
-       
-            
+
+            const doc = new Document({
+                creator: "Twój system",  // Możesz dodać własną nazwę lub pozostawić pustą
+                title: "Tytuł dokumentu", // Opcjonalnie
+                subject: "Temat dokumentu", // Opcjonalnie
+                sections: [
+                ],
+            });
+                    
             //Pętla iterująca po wszystkich stronach/działach przekazanych z front-end
             for (const stronaDzial of stronyDzialyDoPobrania) {
 
@@ -138,6 +151,51 @@ app.post('/scrape', async (req, res) => {
                     height: dimensions.height 
                 })
 
+                if(stronaDzial === 'Dział I-O'){
+                    const numerKsiegi = await page.evaluate(() => {
+                        return document.querySelector('h2 b').innerText
+                    })
+
+                    const sadRejonowy = await page.evaluate(() => {
+                        const h4Text = document.querySelector('h4').innerText
+                        let cleanedText = '';
+                        for (let i = 0; i < h4Text.length; i++) {
+                            // Dodajemy tylko wielkie litery lub inne znaki
+                            if (h4Text[i] === h4Text[i].toUpperCase() || !/[a-z]/.test(h4Text[i])) {
+                                cleanedText += h4Text[i];
+                            }
+                        }
+                
+                        // Usuwamy wszystko po myślniku (wraz z myślnikiem)
+                        const splitText = cleanedText.split(' -')[0]
+                
+                        return splitText
+                    })
+                    
+                    const paragraph = new Paragraph({
+                        children: [
+                            new TextRun('Dla przedmiotowej nieruchomości'),
+                            new TextRun(sadRejonowy),
+                            new TextRun(' prowadzi księgę wieczystą nr '),
+                            new TextRun(numerKsiegi,)
+                        ]
+                    })
+
+                    const paragraph2 = new Paragraph({
+                        children: [
+                            new TextRun('W poszczególnych działach Księgi Wieczystej nr '),
+                            new TextRun(numerKsiegi,),
+                            new TextRun(' zapisano według stanu z dnia: '),
+                        ]
+                    })
+
+                    doc.addSection({
+                        children: [paragraph, paragraph2]
+                    })
+
+                }
+                
+
                 //Tworzenie pdf dla wybranej strony/działu:
                 const pdfBuffer = await page.pdf({
                     printBackground: true,
@@ -153,13 +211,19 @@ app.post('/scrape', async (req, res) => {
                 const pagesToAdd = await pdfDoc.copyPages(tempPdfDoc, tempPdfDoc.getPageIndices())
 
                 pagesToAdd.forEach(page => pdfDoc.addPage(page))
-                
+   
             }
 
+            
              //Zapis finalnego pliku pdf:
              const pdfPath = path.join(__dirname, `${ksiega.kodWydzialu}-${ksiega.numerKsiegiWieczystej}-${ksiega.cyfraKontrolna}.pdf`);
              const finalPdfBytes = await pdfDoc.save()
              fs.writeFileSync(pdfPath, finalPdfBytes)
+
+             // Zapisz dokument Word
+            const wordPath = path.join(__dirname, `${ksiega.kodWydzialu}-${ksiega.numerKsiegiWieczystej}-${ksiega.cyfraKontrolna}.docx`);
+            const buffer = await Packer.toBuffer(doc);
+            fs.writeFileSync(wordPath, buffer);
 
              // Zamknij stronę po zakończeniu
             await page.close()
