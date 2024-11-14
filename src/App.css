@@ -69,6 +69,12 @@ p{
 .typ-ksiegi-wieczystej label{
   font-size: 14px;
 }
+.typ-ksiegi-wieczystej span{
+  font-size: 12px;
+  color: red;
+  margin-bottom: 6px;
+
+}
 
 .strony-dzialy-do-pobrania{
   display: flex;

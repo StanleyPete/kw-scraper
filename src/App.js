@@ -8,7 +8,7 @@ function App() {
   const [numeryKsiag, setNumeryKsiag] = useState('')
   const [aktywanZakladka, setAktywnaZakladka] = useState('zapis-do-pdf')
   // Stany do przechowywania zaznaczonych wartości:
-  const [typKsiegi, setTypKsiegi] = useState('Zupełna treść KW')
+  const [typKsiegi, setTypKsiegi] = useState('Aktualna treść KW')
   const [stronyDzialyDoPobrania, setStronyDzialyDoPobrania] = useState({
     'Okładka': true,
     'Dział I-O': true,
@@ -176,7 +176,8 @@ function App() {
 
          {/* Typ księgi wieczystej*/}
          <div className='typ-ksiegi-wieczystej'>
-            <p>Zaznacz typ księgi wieczystej:</p>
+            <p>Zaznacz typ księgi wieczystej:</p> 
+            <span>( Ta wersja działa TYLKO dla: Aktualna treść KW !!! )</span>
             {typyKsiegi.map((label, index) => (
               <label key={index}>
                 <input
@@ -184,7 +185,7 @@ function App() {
                   value={label}
                   name="typKsiegi"
                   checked={typKsiegi === label} 
-                  onChange={handleTypKsiegi}
+                  // onChange={handleTypKsiegi}
                 />
                 {label}
               </label>
