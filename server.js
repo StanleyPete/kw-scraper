@@ -56,7 +56,7 @@ app.post('/scrape', async (req, res) => {
     const wklejTekstDoTxt = async () => {
         return new Promise((resolve, reject) => {
             const sciezkaDoAhk = sciezkaDoAutoHotKey
-            const sciezkaDoSkryptuAhk = path.join(__dirname, 'wklej-tekst-do-txt.ahk')
+            const sciezkaDoSkryptuAhk = path.join(__dirname, 'lib', 'wklej-tekst-do-txt.ahk')
             const sciezkaPlikuTxt = path.join(__dirname, 'file.txt')
             
             exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuTxt}"`, (error, stdout, stderr) => {
@@ -75,7 +75,7 @@ app.post('/scrape', async (req, res) => {
     const kopiujTekstZTxt = async () => {
         return new Promise((resolve, reject) => {
             const sciezkaDoAhk = sciezkaDoAutoHotKey
-            const sciezkaDoSkryptuAhk = path.join(__dirname, 'kopiuj-tekst-z-txt.ahk')
+            const sciezkaDoSkryptuAhk = path.join(__dirname, 'lib', 'kopiuj-tekst-z-txt.ahk')
             const sciezkaPlikuTxt = path.join(__dirname, 'file.txt')
            
             
@@ -95,10 +95,30 @@ app.post('/scrape', async (req, res) => {
     const wklejTekstDoWord = async (nazwaPlikuWord) => {
         return new Promise((resolve, reject) => {
             const sciezkaDoAhk = sciezkaDoAutoHotKey
-            const sciezkaDoSkryptuAhk = path.join(__dirname, 'wklej-tekst-do-word.ahk')
+            const sciezkaDoSkryptuAhk = path.join(__dirname, 'lib', 'wklej-tekst-do-word.ahk')
             const sciezkaPlikuWord = path.join(__dirname, `${nazwaPlikuWord}.docx`)
             
             exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuWord}" ${sciezkaPlikuWord}`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Błąd przy uruchamianiu AHK: ${error}`)
+                    reject(error)
+                    return
+                }
+                console.log(`Skrypt AHK zakończony: ${stdout}`)
+                resolve(stdout)
+            })
+        })
+    }
+
+    //Funkcja kopiuj tekst z txt przy pomocy ahk:
+    const usunTxt = async () => {
+        return new Promise((resolve, reject) => {
+            const sciezkaDoAhk = sciezkaDoAutoHotKey
+            const sciezkaDoSkryptuAhk = path.join(__dirname, 'lib', 'usun-txt.ahk')
+            const sciezkaPlikuTxt = path.join(__dirname, 'file.txt')
+           
+            
+            exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuTxt}"`, (error, stdout, stderr) => {
                 if (error) {
                     console.error(`Błąd przy uruchamianiu AHK: ${error}`)
                     reject(error)
@@ -416,6 +436,7 @@ app.post('/scrape', async (req, res) => {
 
             await kopiujTekstZTxt()
             await wklejTekstDoWord(`${ksiega.kodWydzialu}-${ksiega.numerKsiegiWieczystej}-${ksiega.cyfraKontrolna}`)
+            await usunTxt()
         }
 
         //Uruchom wuszykaj i zapisz dla wszystkich ksiąg
