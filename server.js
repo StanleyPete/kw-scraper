@@ -6,6 +6,7 @@ const path = require('path')
 const { PDFDocument } = require('pdf-lib')
 const { Document, Packer, Paragraph, TextRun } = require('docx')
 const { exec } = require('child_process')
+const sciezkaDoAutoHotKey = require('./ahk-path')
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -52,10 +53,10 @@ app.post('/scrape', async (req, res) => {
 
 
     //Funkcja zapisz do txt przy pomocy AutoHotKey:
-    const zapiszDoTxtAhk = async () => {
+    const wklejTekstDoTxt = async () => {
         return new Promise((resolve, reject) => {
-            const sciezkaDoAhk = '"C:\\Program Files\\AutoHotkey\\AutoHotkeyU64.exe"'
-            const sciezkaDoSkryptuAhk = path.join(__dirname, 'script.ahk')
+            const sciezkaDoAhk = sciezkaDoAutoHotKey
+            const sciezkaDoSkryptuAhk = path.join(__dirname, 'wklej-tekst-do-txt.ahk')
             const sciezkaPlikuTxt = path.join(__dirname, 'file.txt')
             
             exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuTxt}"`, (error, stdout, stderr) => {
@@ -69,16 +70,82 @@ app.post('/scrape', async (req, res) => {
             })
         })
     }
+
+    //Funkcja kopiuj tekst z txt przy pomocy ahk:
+    const kopiujTekstZTxt = async () => {
+        return new Promise((resolve, reject) => {
+            const sciezkaDoAhk = sciezkaDoAutoHotKey
+            const sciezkaDoSkryptuAhk = path.join(__dirname, 'kopiuj-tekst-z-txt.ahk')
+            const sciezkaPlikuTxt = path.join(__dirname, 'file.txt')
+           
+            
+            exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuTxt}"`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Błąd przy uruchamianiu AHK: ${error}`)
+                    reject(error)
+                    return
+                }
+                console.log(`Skrypt AHK zakończony: ${stdout}`)
+                resolve(stdout)
+            })
+        })
+    }
+
+    //Funkcja wklej do word i zapisz przy pomocy AutoHotKey:
+    const wklejTekstDoWord = async (nazwaPlikuWord) => {
+        return new Promise((resolve, reject) => {
+            const sciezkaDoAhk = sciezkaDoAutoHotKey
+            const sciezkaDoSkryptuAhk = path.join(__dirname, 'wklej-tekst-do-word.ahk')
+            const sciezkaPlikuWord = path.join(__dirname, `${nazwaPlikuWord}.docx`)
+            
+            exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuWord}" ${sciezkaPlikuWord}`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Błąd przy uruchamianiu AHK: ${error}`)
+                    reject(error)
+                    return
+                }
+                console.log(`Skrypt AHK zakończony: ${stdout}`)
+                resolve(stdout)
+            })
+        })
+    }
    
-    const zaznaczTekstOrazSkopiujDoSchowka = async (page, startTekst, endTekst) => {
-        const zaznaczonyTekst = await page.evaluate((startTekst, endTekst) => {
-            // Szukanie elementów o klasie 'csTTytul' zawierających tekst przekazany w parametrach funkcji
-            const startElement = Array.from(document.querySelectorAll('td.csTTytul'))
+    const zaznaczTekstOrazSkopiujDoSchowka = async (page, startTekst, endTekst, dzial) => {
+        const zaznaczonyTekst = await page.evaluate((startTekst, endTekst, dzial) => {
+            let startElement = null
+            let endElement = null
+
+            const contentDzialu = document.getElementById('contentDzialu')
+            const wysokoscContentDzialu = contentDzialu.getBoundingClientRect().height
+            const wysokoscContentDzialuMniejszaNiz250 = wysokoscContentDzialu < 250
+            const brakWpisowElement = Array.from(document.querySelectorAll('td.csBCDane'))
+            .find(el => el.textContent.includes('BRAK WPISÓW'))
+
+         
+
+            if(dzial === 'Dział II') {
+                startElement = Array.from(document.querySelectorAll('td.csTTytul'))
                 .find(el => el.textContent.includes(startTekst))
 
-            const endElement = Array.from(document.querySelectorAll('td.csTTytul'))
-                .find(el => el.textContent.includes(endTekst))
-            
+                endElement = Array.from(document.querySelectorAll('input[type="submit"]'))
+                .find(el => el.value.includes(endTekst))
+            } else {
+                if(wysokoscContentDzialuMniejszaNiz250 && brakWpisowElement){
+                    startElement = Array.from(document.querySelectorAll('td.csTTytul'))
+                    .find(el => el.textContent.includes(startTekst))
+
+                    endElement = Array.from(document.querySelectorAll('input[type="submit"]'))
+                    .find(el => el.value.includes('Powrót'))
+
+                } else {
+                    startElement = Array.from(document.querySelectorAll('td.csTTytul'))
+                        .find(el => el.textContent.includes(startTekst))
+        
+                    endElement = Array.from(document.querySelectorAll('td.csTTytul'))
+                        .find(el => el.textContent.includes(endTekst))
+                }
+            }
+
             if (!startElement || !endElement) {
                 return null
             }
@@ -88,12 +155,21 @@ app.post('/scrape', async (req, res) => {
     
             // Ustawianie początku zaznaczenia na początku startTekst
             zakres.setStart(startElement.firstChild, 0)
-    
-            // Pobieramy tekst z elementu końcowego
-            const endTextNode = endElement.firstChild
             
-            // Ustawianie końca zaznaczenia na miejscu przed końcem endTekst
-            zakres.setEnd(endTextNode, 0)
+            // Pobieranie tekstu z elementu końcowego
+            let endTextNode = null
+            if(dzial === 'Dział II' || (wysokoscContentDzialuMniejszaNiz250 && brakWpisowElement)){
+                endTextNode = endElement
+            } else {
+                endTextNode = endElement.firstChild
+            }
+            
+            //Ustawienie końca zakresu
+            if(dzial === 'Dzial II' || (wysokoscContentDzialuMniejszaNiz250 && brakWpisowElement)){
+                zakres.setEnd(endElement, 0)
+            }else{
+                zakres.setEnd(endTextNode, 0)
+            }
     
             //Usuwanie poprzednich zaznaczeń:
             const selection = window.getSelection()
@@ -107,7 +183,7 @@ app.post('/scrape', async (req, res) => {
     
             // Zwracanie skopiowanego tekstu (test only)
             return selection.toString()
-        }, startTekst, endTekst)
+        }, startTekst, endTekst, dzial)
     
         if (zaznaczonyTekst === null) {
             throw new Error(`Nie znaleziono tekstu "${startTekst}" lub "${endTekst}" na stronie.`)
@@ -272,12 +348,40 @@ app.post('/scrape', async (req, res) => {
                         children: [akapitPierwszy, akapitDrugi, oznaczenieKsiegiWieczystej]
                     })
 
-                    //Sprawdzenie zaznaczonego tekstu (tylko podgląd)
-                    const zaznaczonyTekst = await zaznaczTekstOrazSkopiujDoSchowka(page, 'DZIAŁ I-O - OZNACZENIE NIERUCHOMOŚCI', 'DOKUMENTY BĘDĄCE PODSTAWĄ WPISU / DANE O WNIOSKU')
-                    console.log(zaznaczonyTekst)
+                    const zaznaczonyTekst = await zaznaczTekstOrazSkopiujDoSchowka(page, 'DZIAŁ I-O - OZNACZENIE NIERUCHOMOŚCI', 'DOKUMENTY BĘDĄCE PODSTAWĄ WPISU / DANE O WNIOSKU', stronaDzial)
+                    console.log(zaznaczonyTekst) //Tylko na potrzeby podglądu
 
-                    await zapiszDoTxtAhk()
-                }      
+                    await wklejTekstDoTxt()
+                } 
+
+                if(stronaDzial === 'Dział I-Sp' ){
+                    const zaznaczonyTekst = await zaznaczTekstOrazSkopiujDoSchowka(page, 'DZIAŁ I-SP - SPIS PRAW ZWIĄZANYCH Z WŁASNOŚCIĄ', 'DOKUMENTY BĘDĄCE PODSTAWĄ WPISU / DANE O WNIOSKU', stronaDzial)
+                    console.log(zaznaczonyTekst) //Tylko na potrzeby podglądu
+                    
+                    await wklejTekstDoTxt()
+                }
+
+                if(stronaDzial === 'Dział II' ){
+                    const zaznaczonyTekst = await zaznaczTekstOrazSkopiujDoSchowka(page, 'DZIAŁ II - WŁASNOŚĆ', 'Powrót', stronaDzial)
+                    console.log(zaznaczonyTekst) //Tylko na potrzeby podglądu
+                    
+                    await wklejTekstDoTxt()
+                }
+                
+                if(stronaDzial === 'Dział III' ){
+                    const zaznaczonyTekst = await zaznaczTekstOrazSkopiujDoSchowka(page, 'DZIAŁ III - PRAWA, ROSZCZENIA I OGRANICZENIA', 'DOKUMENTY BĘDĄCE PODSTAWĄ WPISU / DANE O WNIOSKU', stronaDzial)
+
+                    console.log(zaznaczonyTekst) //Tylko na potrzeby podglądu
+                    
+                    await wklejTekstDoTxt()
+                }
+
+                if(stronaDzial === 'Dział IV' ){
+                    const zaznaczonyTekst = await zaznaczTekstOrazSkopiujDoSchowka(page, 'DZIAŁ IV - HIPOTEKA', 'DOKUMENTY BĘDĄCE PODSTAWĄ WPISU / DANE O WNIOSKU')
+                    console.log(zaznaczonyTekst) //Tylko na potrzeby podglądu
+                    
+                    await wklejTekstDoTxt()
+                }
 
                 //Tworzenie pdf dla wybranej strony/działu:
                 const pdfBuffer = await page.pdf({
@@ -295,6 +399,7 @@ app.post('/scrape', async (req, res) => {
 
                 //Dodawanie stron do pdfDoc
                 pagesToAdd.forEach(page => pdfDoc.addPage(page)) 
+
             }
 
             //Zapis dokument pdf:
@@ -308,6 +413,9 @@ app.post('/scrape', async (req, res) => {
             fs.writeFileSync(wordPath, buffer)
 
             await page.close()
+
+            await kopiujTekstZTxt()
+            await wklejTekstDoWord(`${ksiega.kodWydzialu}-${ksiega.numerKsiegiWieczystej}-${ksiega.cyfraKontrolna}`)
         }
 
         //Uruchom wuszykaj i zapisz dla wszystkich ksiąg
@@ -328,12 +436,6 @@ app.post('/scrape', async (req, res) => {
     
     
 })
-
-
-
-
-
-
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`)
