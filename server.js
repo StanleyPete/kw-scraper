@@ -24,7 +24,8 @@ app.post('/scrape', async (req, res) => {
             args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-blink-features=AutomationControlled', 
+            '--disable-blink-features=AutomationControlled',
+            '--start-maximized' 
             ],
         })
 

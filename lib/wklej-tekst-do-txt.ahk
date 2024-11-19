@@ -39,6 +39,18 @@ else
     ; Pauza
     Sleep, 500
 
+    ; Przejdź na koniec dokumentu
+    Send, {End}
+
+    ; Pauza
+    Sleep, 500
+
+    ; Nowy wiersz
+    Send, {Enter}
+
+    ; Pauza
+    Sleep, 500
+
     ; Wklej zawartość schowka 
     Send, ^v
 
