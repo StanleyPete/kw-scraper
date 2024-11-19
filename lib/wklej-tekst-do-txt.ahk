@@ -40,7 +40,7 @@ else
     Sleep, 500
 
     ; Przejdź na koniec dokumentu
-    Send, {End}
+    Send, ^{End}
 
     ; Pauza
     Sleep, 500
