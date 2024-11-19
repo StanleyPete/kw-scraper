@@ -8,7 +8,7 @@ function App() {
   const [numeryKsiag, setNumeryKsiag] = useState('')
   const [aktywanZakladka, setAktywnaZakladka] = useState('zapis-do-pdf')
   // Stany do przechowywania zaznaczonych wartości:
-  const [typKsiegi, setTypKsiegi] = useState('Zupełna treść KW')
+  const [typKsiegi, setTypKsiegi] = useState('Aktualna treść KW')
   const [stronyDzialyDoPobrania, setStronyDzialyDoPobrania] = useState({
     'Okładka': true,
     'Dział I-O': true,
