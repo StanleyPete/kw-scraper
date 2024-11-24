@@ -20,13 +20,13 @@ app.post('/scrape', async (req, res) => {
         console.log(req.body)
         const { ksiegi, typKsiegi, stronyDzialyDoPobrania } = req.body
         
-        // Otwarcie przeglądarki
+        //Otwarcie przeglądarki
         const browser = await puppeteer.launch({
             headless: false, 
             args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-blink-features=AutomationControlled', 
+            '--disable-blink-features=AutomationControlled',
             ],
         })
 
