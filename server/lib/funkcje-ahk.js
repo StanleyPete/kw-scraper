@@ -1,5 +1,5 @@
 //Funkcja zapisz do txt przy pomocy AutoHotKey:
-const sciezkaDoAutoHotKey = require('../ahk-path')
+const sciezkaDoAutoHotKey = require('../../ahk-path')
 const { exec } = require('child_process')
 const path = require('path')
 

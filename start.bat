@@ -9,7 +9,7 @@ if exist "node_modules" (
 
     REM Back-end launch
     echo Starting backend...
-    start cmd /k "nodemon server.js"
+    start cmd /k "node server.js"
 ) else (
     echo Installing backend dependencies...
     npm install
@@ -25,7 +25,7 @@ if exist "node_modules" (
 
     REM Back-end launch
     echo Starting backend...
-    start cmd /k "nodemon server.js"
+    start cmd /k "node server.js"
 
 
 )

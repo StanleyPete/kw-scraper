@@ -14,7 +14,6 @@ app.use(express.json())
 
 app.post('/scrape', async (req, res) => {
     try {
-        //Parametry/właściwości przekazane z front-end oraz ich podgląd
         const { ksiegi, typKsiegi, stronyDzialyDoPobrania } = req.body
         console.log('DANE Z FRONT-END:') // Tylko na potrzeby podglądu
         console.log(req.body)
