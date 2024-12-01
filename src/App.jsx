@@ -297,9 +297,9 @@ function App() {
         </div>
           
          {/*Przycisk zamknij (position: absolute*/}
-        <button className="zamknij" onClick={handleZamknij}>Zamknij</button>
 
       </form>
+        <button className="zamknij" onClick={handleZamknij}>Zamknij</button>
     </div>
   )
 }

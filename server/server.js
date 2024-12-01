@@ -49,7 +49,7 @@ app.post('/scrape', async (req, res) => {
 
 app.post('/zamknij', async (req, res) => {
     try {
-      zamknijAplikacje()
+      await zamknijAplikacje()
     } catch (error) {
       console.error('Błąd podczas zamykania aplikacji:', error)
       res.status(500).json({ error: 'Błąd podczas zamykania aplikacji' })

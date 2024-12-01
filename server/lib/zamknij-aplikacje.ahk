@@ -1,26 +1,28 @@
 #NoEnv  
-#Persistent 
-#SingleInstance Force 
+#Persistent  
+#SingleInstance Force  
 
+Send, ^w 
 
 CloseCmdWindows() {
-    
-    WinGet, id, List, ahk_class ConsoleWindowClass
-    Loop, %id%
-    {
-        this_id := id%A_Index%
-        WinClose, ahk_id %this_id%
+    Process, Wait, OpenConsole.exe 
+    Loop {
+        Process, Close, OpenConsole.exe
+      OpenConsole.exe
+        if !ProcessExist("OpenConsole.exe")
+            break
     }
 }
-
 
 KillNodeProcesses() {
     RunWait, taskkill /F /IM node.exe, , Hide
 }
 
+ProcessExist(ProcessName) {
+    Process, Exist, %ProcessName%
+    return ErrorLevel
+}
 
 CloseCmdWindows()
 KillNodeProcesses()
-
-
 ExitApp
