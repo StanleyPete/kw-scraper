@@ -3,11 +3,11 @@ const sciezkaDoAutoHotKey = require('../../ahk-path')
 const { exec } = require('child_process')
 const path = require('path')
 
-const wklejTekstDoTxt = async () => {
+const wklejTekstDoTxt = async (nazwaPlikuTxt) => {
     return new Promise((resolve, reject) => {
         const sciezkaDoAhk = sciezkaDoAutoHotKey
         const sciezkaDoSkryptuAhk = path.join(__dirname, 'wklej-tekst-do-txt.ahk')
-        const sciezkaPlikuTxt = path.join(__dirname, '..', 'file.txt')
+        const sciezkaPlikuTxt = path.join(__dirname, '..', '..', `${nazwaPlikuTxt}.txt`)
         
         exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuTxt}"`, (error, stdout, stderr) => {
             if (error) {
@@ -22,11 +22,11 @@ const wklejTekstDoTxt = async () => {
 }
 
 //Funkcja kopiuj tekst z txt przy pomocy ahk:
-const kopiujTekstZTxt = async () => {
+const kopiujTekstZTxt = async (nazwaPlikuTxt) => {
     return new Promise((resolve, reject) => {
         const sciezkaDoAhk = sciezkaDoAutoHotKey
         const sciezkaDoSkryptuAhk = path.join(__dirname, 'kopiuj-tekst-z-txt.ahk')
-        const sciezkaPlikuTxt = path.join(__dirname, '..', 'file.txt')
+        const sciezkaPlikuTxt = path.join(__dirname, '..', '..', `${nazwaPlikuTxt}.txt`)
        
         
         exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuTxt}"`, (error, stdout, stderr) => {
@@ -46,7 +46,7 @@ const wklejTekstDoWord = async (nazwaPlikuWord) => {
     return new Promise((resolve, reject) => {
         const sciezkaDoAhk = sciezkaDoAutoHotKey
         const sciezkaDoSkryptuAhk = path.join(__dirname, 'wklej-tekst-do-word.ahk')
-        const sciezkaPlikuWord = path.join(__dirname, '..', `${nazwaPlikuWord}.docx`)
+        const sciezkaPlikuWord = path.join(__dirname, '..', '..', `${nazwaPlikuWord}.docx`)
         
         exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuWord}" ${sciezkaPlikuWord}`, (error, stdout, stderr) => {
             if (error) {
@@ -61,14 +61,31 @@ const wklejTekstDoWord = async (nazwaPlikuWord) => {
 }
 
 //Funkcja usuń plik txt:
-const usunTxt = async () => {
+const usunTxt = async (nazwaPlikuTxt) => {
     return new Promise((resolve, reject) => {
         const sciezkaDoAhk = sciezkaDoAutoHotKey
         const sciezkaDoSkryptuAhk = path.join(__dirname, 'usun-txt.ahk')
-        const sciezkaPlikuTxt = path.join(__dirname, '..', 'file.txt')
+        const sciezkaPlikuTxt = path.join(__dirname, '..', '..', `${nazwaPlikuTxt}.txt`)
        
         
         exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}" "${sciezkaPlikuTxt}"`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Błąd przy uruchamianiu AHK: ${error}`)
+                reject(error)
+                return
+            }
+            console.log(`Skrypt AHK usun-txt zakończony: ${stdout}`)
+            resolve(stdout)
+        })
+    })
+}
+
+const zamknijAplikacje = async () => {
+    return new Promise((resolve, reject) => {
+        const sciezkaDoAhk = sciezkaDoAutoHotKey
+        const sciezkaDoSkryptuAhk = path.join(__dirname, 'zamknij-aplikacje.ahk')
+     
+        exec(`${sciezkaDoAhk} "${sciezkaDoSkryptuAhk}"`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Błąd przy uruchamianiu AHK: ${error}`)
                 reject(error)
@@ -84,5 +101,6 @@ module.exports = {
     wklejTekstDoTxt,
     kopiujTekstZTxt,
     wklejTekstDoWord,
-    usunTxt
+    usunTxt,
+    zamknijAplikacje
 }

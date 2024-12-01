@@ -3,7 +3,7 @@ const poczekajNaZaladowanieStrony = async (page, maxLiczbaProb = 5, strona) => {
 
     while (attempt < maxLiczbaProb) {
         try {
-            await page.waitForNavigation({ waitUntil: 'load', timeout: 10000 })
+            await page.waitForNavigation({ waitUntil: 'load', timeout: 6500 })
             return
         } catch {
             try {

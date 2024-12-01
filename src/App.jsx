@@ -102,8 +102,8 @@ function App() {
 
   const sprawdzPoprawnoscNumerow = (wprowadzoneNumery) => {
 
-    if (typKsiegi === 'Aktualna treść KW' && wprowadzoneNumery.length > 1) {
-      setError({ error: true, errorTekst: 'Możesz wprowadzić TYLKO JEDEN NUMER KSIĘGI' })
+    if (typKsiegi === 'Aktualna treść KW' && (opcjeZapisu.DOCX || opcjeZapisu.TXT) && wprowadzoneNumery.length > 1) {
+      setError({ error: true, errorTekst: 'Możesz wprowadzić TYLKO JEDEN numer księgi!' })
       return false
     }
 
@@ -139,6 +139,7 @@ function App() {
         listaKsiag.push({ kodWydzialu, numerKsiegiWieczystej, cyfraKontrolna })
     }
 
+    console.log(listaKsiag)
     return listaKsiag
   }
 
@@ -149,13 +150,14 @@ function App() {
     if (sprawdzCzyWybranoStronyIOpcje()) return
   
     const wprowadzoneNumery = pobierzNumeryKsiegi()
-    if (!sprawdzPoprawnoscNumerow(wprowadzoneNumery)) return
+    const listaKsiag = sprawdzPoprawnoscNumerow(wprowadzoneNumery)
+    if (!listaKsiag) return 
 
-    handleScrape(wprowadzoneNumery, typKsiegi, stronyDzialyDoPobrania)
+    handleScrape(listaKsiag, typKsiegi, stronyDzialyDoPobrania, opcjeZapisu, pozostawOtwartaPrzegladarke)
   }
 
  
-  const handleScrape = async (ksiegi, typKsiegi, stronyDzialyDoPobrania) => {
+  const handleScrape = async (ksiegi, typKsiegi, stronyDzialyDoPobrania, opcjeZapisu, pozostawOtwartaPrzegladarke) => {
       
     try {
       const wybraneStronyDzialy = Object.entries(stronyDzialyDoPobrania)
@@ -165,7 +167,9 @@ function App() {
       const response = await axios.post('http://localhost:5000/scrape', {
         ksiegi,
         typKsiegi,
-        stronyDzialyDoPobrania: wybraneStronyDzialy
+        stronyDzialyDoPobrania: wybraneStronyDzialy,
+        opcjeZapisu,
+        pozostawOtwartaPrzegladarke
       })
 
       if (response.status === 200) {
@@ -176,6 +180,20 @@ function App() {
     } catch (error) {
         console.error('Błąd przy komunikacji z serwerem:', error)
         alert('Wystąpił błąd przy łączeniu z serwerem.')
+    }
+  }
+
+  const handleZamknij = async () => {
+    try {
+      const response = await axios.post('http://localhost:5000/zamknij')
+      if (response.status === 200) {
+        alert('Przeglądarka została zamknięta.')
+      } else {
+        alert('Wystąpił błąd przy zamykaniu przeglądarki: ' + response.data.error)
+      }
+    } catch (error) {
+      console.error('Błąd przy komunikacji z serwerem: ', error);
+      alert('Błąd przy komunikacji z serwerem')
     }
   }
 
@@ -258,7 +276,7 @@ function App() {
      
         {/*Textarea*/}
         <div className="textarea-input">
-            <p>{typKsiegi === 'Aktualna treść KW' ? 'Wpisz TYLKO JEDEN numer księgi:' : 'Wpisz numery ksiąg wieczystych:'}</p>
+            <p>{typKsiegi === 'Aktualna treść KW' &&(opcjeZapisu.DOCX || opcjeZapisu.TXT) ? 'Wpisz TYLKO JEDEN numer księgi:' : 'Wpisz numery ksiąg wieczystych:'}</p>
             <textarea 
               onChange={handleZmianaTextArea}
               placeholder="Wpisz numery ksiąg wieczystych oddzielajac je przecinkiem, średnikiem lub spacją"
@@ -279,7 +297,7 @@ function App() {
         </div>
           
          {/*Przycisk zamknij (position: absolute*/}
-        <button className="zamknij">Zamknij</button>
+        <button className="zamknij" onClick={handleZamknij}>Zamknij</button>
 
       </form>
     </div>
