@@ -18,7 +18,7 @@ app.post('/zapis-pdf', async (req, res) => {
     try {
     // Parametry/właściwości przekazane z front-end
         console.log(req.body);
-        const { ksiegi, typKsiegi, stronyDzialyDoPobrania } = req.body;
+        const { ksiegi, typKsiegi, stronyDzialyDoPobrania, uzyjTor } = req.body;
 
         // Otwarcie przeglądarki
         const browser = await puppeteer.launch({
@@ -27,6 +27,7 @@ app.post('/zapis-pdf', async (req, res) => {
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-blink-features=AutomationControlled',
+                ...(uzyjTor ? ['--proxy-server=socks5://127.0.0.1:9050'] : [])
             ],
         });
 

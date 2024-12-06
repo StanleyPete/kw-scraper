@@ -31,7 +31,7 @@ function App() {
         <div className="App">
             {/* Zakładki */}
             <div className="warstwa-tla">
-                <div className="funkcja">
+                <div className="zakladki">
                     {zakladki.map((zakladka) => (
                         <button
                             key={zakladka.nazwa}
@@ -46,7 +46,6 @@ function App() {
 
             {/* Wyświetlanie komponentu */}
             <div className="content">
-                {/* Użyty optional chaining: Jeśli wynik find to undefined, operator ?. zwróci undefined, bez wyrzucenia błędu  */}
                 {zakladki.find((zakladka) => zakladka.nazwa === aktywanZakladka)?.komponent}
             </div>
         </div>

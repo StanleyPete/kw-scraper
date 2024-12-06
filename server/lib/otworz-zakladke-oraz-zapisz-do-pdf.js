@@ -4,7 +4,7 @@ const path = require('path');
 const zaladowanieStrony = require('./zaladowanie-strony');
 
 // Pętla iterująca po wszystkich księgach przekazanych z front-end
-const otworzZakladkeOrazZapiszDoPdf = async (ksiega, index, browser, stronyDzialyDoPobrania, typKsiegi,
+const otworzZakladkeOrazZapiszDoPdf = async (ksiega, index, browser, stronyDzialyDoPobrania, typKsiegi
 ) => {
     // Opóźnienie przed tworzeniem nowej zakładki
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -29,10 +29,11 @@ const otworzZakladkeOrazZapiszDoPdf = async (ksiega, index, browser, stronyDzial
     const session = await page.createCDPSession();
     await session.send(`Emulation.setFocusEmulationEnabled`, { enabled: true });
 
-    // Wejście na stronę:
     await page.goto(
         'https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW?komunikaty=true&kontakt=true&okienkoSerwisowe=false',
-        { waitUntil: 'load' },
+        { 
+            timeout: 120000,
+            waitUntil: 'load' },
     );
 
     await zaladowanieStrony(page, 5, 'strona-główna');

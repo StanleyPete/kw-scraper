@@ -5,6 +5,7 @@ const ZapiszDoPdf = () => {
     const [error, setError] = useState('');
     const [numeryKsiag, setNumeryKsiag] = useState('');
     const [typKsiegi, setTypKsiegi] = useState('Aktualna treść KW');
+    const [uzyjTor, setUzyjTor] = useState(false);
     const [stronyDzialyDoPobrania, setStronyDzialyDoPobrania] = useState({
         Okładka: true,
         'Dział I-O': true,
@@ -36,6 +37,10 @@ const ZapiszDoPdf = () => {
             ...prevState,
             [name]: checked,
         }));
+    };
+
+    const handleUzyjTor = () => {
+        setUzyjTor(prevState => !prevState);
     };
 
     const handleWysylkaFormularza = async (event) => {
@@ -91,11 +96,11 @@ const ZapiszDoPdf = () => {
             });
         }
 
-        handleZapisDoPdf(listaKsiag, typKsiegi, stronyDzialyDoPobrania);
+        handleZapisDoPdf(listaKsiag, typKsiegi, stronyDzialyDoPobrania, uzyjTor);
     };
 
 
-    const handleZapisDoPdf = async (ksiegi, typKsiegi, stronyDzialyDoPobrania) => {
+    const handleZapisDoPdf = async (ksiegi, typKsiegi, stronyDzialyDoPobrania, uzyjTor) => {
         try {
             const wybraneStronyDzialy = Object.entries(stronyDzialyDoPobrania)
                 .filter(([key, value]) => value)
@@ -105,6 +110,7 @@ const ZapiszDoPdf = () => {
                 ksiegi,
                 typKsiegi,
                 stronyDzialyDoPobrania: wybraneStronyDzialy,
+                uzyjTor
             });
 
             if (response.status === 200) {
@@ -175,6 +181,17 @@ const ZapiszDoPdf = () => {
                     cols="50"
                 />
                 <button type="submit">Zapisz</button>
+                <label htmlFor="uzyjTor" className="uzyj-tor">
+                    <input
+                        type="checkbox"
+                        id="uzyjTor"
+                        checked={uzyjTor} // Domyślnie false
+                        onChange={handleUzyjTor}
+                    />
+                        Użyj TOR 
+                </label>
+                <p className={`tor-hint ${uzyjTor ? 'tor-hint-active' : ''}`}>*Aby używać TOR musisz mieć go zainstalowanego lokalnie na swoim komputerze</p>
+                <p className={`tor-hint ${uzyjTor ? 'tor-hint-active' : ''}`}>*Przed kliknięciem Zapisz, uruchom TOR i nawiąż połączenie</p>
                 {error && <div style={{ color: 'red' }}>{error}</div>}
             </div>
         </form>
