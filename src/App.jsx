@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ZapiszDoPdf from './components/ZapiszDoPdf';
-import PobierzWlascicieli from './components/PobierzWlascicieli';
+import PobierzDaneOLokalach from './components/PobierzDaneOLokalach';
 import InnaFunkcjonalnosc from './components/InnaFunkcjonalnosc';
 import './App.css';
 
@@ -16,9 +16,9 @@ function App() {
             komponent: <ZapiszDoPdf />,
         },
         {
-            nazwa: 'pobierz-wlascicieli',
-            etykieta: 'Pobierz właścicieli',
-            komponent: <PobierzWlascicieli />,
+            nazwa: 'pobierz-dane-o-lokalach',
+            etykieta: 'Pobierz dane o lokalach',
+            komponent: <PobierzDaneOLokalach />,
         },
         {
             nazwa: 'inna-funkcja',

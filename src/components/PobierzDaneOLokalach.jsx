@@ -3,7 +3,7 @@ import kodyWydzialoweSadow from '../helpers/kodyWydzialoweSadow.json';
 import obliczCyfreKontrolna from '../helpers/obliczCyfreKontrolna';
 import axios from 'axios';
 
-const PobierzWlascicieli = () => {
+const PobierzDaneOLokalach = () => {
     const [error, setError] = useState('');
     const [numerKsiegi, setNumerKsiegi] = useState('');
     const [uzyjTor, setUzyjTor] = useState(false);
@@ -81,7 +81,7 @@ const PobierzWlascicieli = () => {
                 cyfraKontrolna
             };
             
-            const response = await axios.post('http://localhost:5000/pobierz-wlascicieli', {
+            const response = await axios.post('http://localhost:5000/pobierz-dane-o-lokalach', {
                 numerKsiegi: obiektNumeruKsiegi,
                 uzyjTor
             });
@@ -109,7 +109,7 @@ const PobierzWlascicieli = () => {
                     rows="4"
                     cols="50"
                 />
-                <button type="submit">Pobierz właścicieli</button>
+                <button type="submit">Pobierz dane o lokalach</button>
                 <label htmlFor="uzyjTor" className="uzyj-tor">
                     <input
                         type="checkbox"
@@ -127,4 +127,4 @@ const PobierzWlascicieli = () => {
     );
 };
 
-export default PobierzWlascicieli;
+export default PobierzDaneOLokalach;
