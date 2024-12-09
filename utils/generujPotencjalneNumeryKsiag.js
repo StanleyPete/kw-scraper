@@ -53,6 +53,6 @@ function zapiszPlik(tabelaPotencjalnychNumerow, nazwaPliku) {
     fs.writeFileSync(nazwaPliku, JSON.stringify(tabelaPotencjalnychNumerow, null, 2), 'utf-8');
 }
 
-const wyniki = generujPotencjalneNumeryKsiag("WR1K", 2, 1, 1500000);
+const wyniki = generujPotencjalneNumeryKsiag('WR1K', 2, 1, 1500000);
 zapiszPlik(wyniki, 'potencjalneNumery.json');
 console.log('Wyniki zapisane do pliku wyniki.json');
