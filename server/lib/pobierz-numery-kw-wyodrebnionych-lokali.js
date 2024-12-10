@@ -1,6 +1,6 @@
 const zaladowanieStrony = require('./zaladowanie-strony');
 
-const otworzZakladkeOrazPobierzNumeryWyodrebionychLokali = async (numerKwWyodrebnionegoLokalu, browser) => {
+const pobierzNumeryKwWyodrebnionychLokali = async (numerKwWyodrebnionegoLokalu, browser) => {
      
     const page = await browser.newPage();
     // Ustawienia strony
@@ -66,7 +66,7 @@ const otworzZakladkeOrazPobierzNumeryWyodrebionychLokali = async (numerKwWyodreb
             const textContent = elementyTd[i].textContent.trim();
             
             if (textContent === 'Numer księgi') {
-                // Sprawdzedznie czy istnieje następny element td obok elementu z tekstem 'Numer księgi
+                // Sprawdzedznie czy istnieje następny element td obok elementu z tekstem 'Numer księgi'
                 const nextTd = elementyTd[i].nextElementSibling;
                 if (nextTd && nextTd.classList.contains('csDane')) {
                     //Usunięcie spacji wewnątrz numeru księgi wyodrębnionego lokalu
@@ -90,4 +90,4 @@ const otworzZakladkeOrazPobierzNumeryWyodrebionychLokali = async (numerKwWyodreb
     return numeryKwWyodrebnionychLokali;
 };
 
-module.exports = otworzZakladkeOrazPobierzNumeryWyodrebionychLokali;
+module.exports = pobierzNumeryKwWyodrebnionychLokali;

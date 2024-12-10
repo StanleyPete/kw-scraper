@@ -4,7 +4,7 @@ const path = require('path');
 const zaladowanieStrony = require('./zaladowanie-strony');
 
 // Pętla iterująca po wszystkich księgach przekazanych z front-end
-const otworzZakladkeOrazZapiszDoPdf = async (ksiega, index, browser, stronyDzialyDoPobrania, typKsiegi
+const zapiszDoPdf = async (ksiega, index, browser, stronyDzialyDoPobrania, typKsiegi
 ) => {
     // Opóźnienie przed tworzeniem nowej zakładki
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -117,4 +117,4 @@ const otworzZakladkeOrazZapiszDoPdf = async (ksiega, index, browser, stronyDzial
     await page.close();
 };
 
-module.exports = otworzZakladkeOrazZapiszDoPdf;
+module.exports = zapiszDoPdf;

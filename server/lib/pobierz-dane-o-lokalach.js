@@ -1,14 +1,9 @@
 const zaladowanieStrony = require('./zaladowanie-strony');
 
+const pobierzDaneOLokalach = async(ksiega, browser ) => {
 
-const otworzZakladkeOrazPobierzWlascicieli = async(ksiega, index, browser ) => {
-
-    // Opóźnienie przed tworzeniem nowej zakładki
-    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    await delay(index * 100);
-
-    // Nowa zakładka
-    const page = await browser.newPage();
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
 
     // Ustawienia strony
     await page.setUserAgent(
@@ -89,14 +84,14 @@ const otworzZakladkeOrazPobierzWlascicieli = async(ksiega, index, browser ) => {
     wyodrebnionyLokal.numerLokalu = ulicaNumerBudynkuNumerLokalu.numerLokalu;
 
     //Pobieranie powierzchnii lokalu
-    const powierzchniaLokalu = await page.evaluate(() => {
+    wyodrebnionyLokal.powierzchnia = await page.evaluate(() => {
         const elementyTd = Array.from(document.querySelectorAll('td.csDane'));
 
         for (let i = 0; i < elementyTd.length; i++) {
             const textContent = elementyTd[i].textContent.trim();
             
             if (textContent === 'Pole powierzchni użytkowej lokalu wraz z powierzchnią pomieszczeń przynależnych') {
-                // Sprawdzedznie czy istnieje następny element td obok elementu z tekstem 'Numer księgi
+                // Sprawdzedznie czy istnieje następny element td obok elementu z tekstem textContent
                 const nextTd = elementyTd[i].nextElementSibling;
                 if (nextTd && nextTd.classList.contains('csBDane')) {
                     return nextTd.textContent.trim();
@@ -106,21 +101,18 @@ const otworzZakladkeOrazPobierzWlascicieli = async(ksiega, index, browser ) => {
         return ''; 
     });
 
-    wyodrebnionyLokal.powierzchnia = powierzchniaLokalu;
-
-
     await page.click(`input[value="Dział I-Sp"]`);
     await zaladowanieStrony(page, 5, 'księga');
 
     //Pobieranie udzialu
-    const udzialLokalu = await page.evaluate(() => {
+    wyodrebnionyLokal.udzial = await page.evaluate(() => {
         const elementyTd = Array.from(document.querySelectorAll('td.csDane'));
 
         for (let i = 0; i < elementyTd.length; i++) {
             const textContent = elementyTd[i].textContent.trim();
             
             if (textContent === 'Wielkość udziału w nieruchomości wspólnej, którą stanowi grunt oraz części budynku i urządzenia, które nie służą wyłącznie do użytku właścicieli lokali') {
-                // Sprawdzedznie czy istnieje następny element td obok elementu z tekstem 'Numer księgi
+                // Sprawdzedznie czy istnieje następny element td obok elementu z tekstem textContent
                 let nextElement = elementyTd[i].nextElementSibling;
 
                 while (nextElement && !nextElement.classList.contains('csDane')) {
@@ -135,11 +127,9 @@ const otworzZakladkeOrazPobierzWlascicieli = async(ksiega, index, browser ) => {
         return ''; 
     });
 
-    wyodrebnionyLokal.udzial = udzialLokalu;
-
     await page.close();
     return wyodrebnionyLokal;
 
 };
 
-module.exports = otworzZakladkeOrazPobierzWlascicieli;
+module.exports = pobierzDaneOLokalach;

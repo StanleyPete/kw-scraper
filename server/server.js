@@ -1,14 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const puppeteer = require('puppeteer');
-const otworzZakladkeOrazZapiszDoPdf = require('./lib/otworz-zakladke-oraz-zapisz-do-pdf');
-const otworzZakladkeOrazPobierzNumeryKwWyodrebionychLokali = require('./lib/otworz-zakladke-oraz-pobierz-numery-kw-wyodrebnionych-lokali');
-const otworzZakladkeOrazPobierzDaneOLokalach = require('./lib/otworz-zakladke-oraz-dane-o-lokalach');
+const zapiszDoPdf = require('./lib/zapisz-do-pdf');
+const pobierzNumeryKwWyodrebnionychLokali = require('./lib/pobierz-numery-kw-wyodrebnionych-lokali');
+const pobierzDaneOLokalach = require('./lib/pobierz-dane-o-lokalach');
+const posortujLokale = require('./lib/sortuj-pobrane-lokale');
+const zapiszPlikExcel = require('./lib/zapisz-do-excel');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(
     cors({
         origin: 'http://localhost:3000',
@@ -16,13 +17,12 @@ app.use(
 );
 app.use(express.json());
 
+//ENDPOINT ZAPISZ DO PDF
 app.post('/zapis-pdf', async (req, res) => {
     try {
-    // Parametry/właściwości przekazane z front-end
         console.log(req.body);
         const { ksiegi, typKsiegi, stronyDzialyDoPobrania, uzyjTor } = req.body;
 
-        // Otwarcie przeglądarki
         const browser = await puppeteer.launch({
             headless: false,
             args: [
@@ -33,9 +33,8 @@ app.post('/zapis-pdf', async (req, res) => {
             ],
         });
 
-        // Uruchamianie operacji równocześnie
         const wyszukajKsiegiOrazZapisz = ksiegi.map((ksiega, index) =>
-            otworzZakladkeOrazZapiszDoPdf(
+            zapiszDoPdf(
                 ksiega,
                 index,
                 browser,
@@ -44,7 +43,6 @@ app.post('/zapis-pdf', async (req, res) => {
             ),
         );
 
-        // Oczekiwanie na zakończenie zapisu dla wszystkich ksiąg
         await Promise.all(wyszukajKsiegiOrazZapisz);
 
         await browser.close();
@@ -58,12 +56,13 @@ app.post('/zapis-pdf', async (req, res) => {
     }
 });
 
-
+//ENDPOINT POBIERZ DANE O LOKALACH
 app.post('/pobierz-dane-o-lokalach', async (req, res) => {
     try {
         console.log(req.body);
         const { numerKsiegi, uzyjTor } = req.body;
 
+        //Otwarcie przegladarki w celu pobrania wszystkich numerów ksiąg wieczystych dla wyodrębnionych lokali
         const browser = await puppeteer.launch({
             headless: false,
             args: [
@@ -74,9 +73,9 @@ app.post('/pobierz-dane-o-lokalach', async (req, res) => {
             ],
         });
 
-        const wszystkieNumeryKwWyodrebnionychLokali = await otworzZakladkeOrazPobierzNumeryKwWyodrebionychLokali(numerKsiegi, browser);
+        //Pobranie wszystkich numerów ksiąg dla wyodrębnionych lokali
+        const wszystkieNumeryKwWyodrebnionychLokali = await pobierzNumeryKwWyodrebnionychLokali(numerKsiegi, browser);
 
-      
 
         if(wszystkieNumeryKwWyodrebnionychLokali.message && wszystkieNumeryKwWyodrebnionychLokali.message === 'Nie znaleziono budynków w księdze wieczystej'){
             await browser.close();
@@ -84,11 +83,16 @@ app.post('/pobierz-dane-o-lokalach', async (req, res) => {
                 message: wszystkieNumeryKwWyodrebnionychLokali.message, 
             });
         }
+
         await browser.close();
 
+        //Tablica do której zapisywane są obiekty z danymi wyodrębnionego lokalu
         const wszystkieDaneOLokalach = [];
-        const batchSize = 5;
+        
+        //Ilość jednocześnie przetwarzanych wyodrębnionch lokali
+        const batchRozmiar = 5;
 
+        //Funkcja otwierająca przeglądarki dla wielu wyodrębnionych lokali
         const przetworzBatch = async (batch) => {
             const browser = await puppeteer.launch({
                 headless: false,
@@ -100,40 +104,47 @@ app.post('/pobierz-dane-o-lokalach', async (req, res) => {
                 ],
             });
 
-            try{
-                const operacje = batch.map((ksiega, index) =>
-                    otworzZakladkeOrazPobierzDaneOLokalach(ksiega, index, browser)
-                        .then(daneLokalu => wszystkieDaneOLokalach.push(daneLokalu))
-                );
-                await Promise.all(operacje);
+            try {
+                const pobierzDaneDlaBatch = batch.map((ksiega, index) => {
+                    return new Promise(async (resolve) => {
+                        //Sekundowe opóźnienie w otwieraniu każdej instancji przeglądarki
+                        await new Promise(r => setTimeout(r, index * 1000));
+                        const daneLokalu = await pobierzDaneOLokalach(ksiega, browser);
+                        //Dodanie pobranych danych do globalnej tabeli
+                        wszystkieDaneOLokalach.push(daneLokalu);
+                        resolve();
+                    });
+                });
+        
+                await Promise.all(pobierzDaneDlaBatch);
             } finally {
-                // await browser.close();
+                await browser.close();
             }
         };
 
-        // Przetwarzanie wsadowe
-        for (let i = 0; i < wszystkieNumeryKwWyodrebnionychLokali.length; i += batchSize) {
-            const batch = wszystkieNumeryKwWyodrebnionychLokali.slice(i, i + batchSize);
+        for (let i = 0; i < wszystkieNumeryKwWyodrebnionychLokali.length; i += batchRozmiar) {
+            const batch = wszystkieNumeryKwWyodrebnionychLokali.slice(i, i + batchRozmiar);
             await przetworzBatch(batch);
         }
 
-        console.log(wszystkieDaneOLokalach);
+        //Sortowanie pobranych danych:
+        const posortowaneDaneOLokalach = await posortujLokale(wszystkieDaneOLokalach);
 
-  
+        //Zapis finalnego pliku
+        zapiszPlikExcel(posortowaneDaneOLokalach, `${numerKsiegi.kodWydzialu}-${numerKsiegi.numerKsiegiWieczystej}-${numerKsiegi.cyfraKontrolna}`);
 
         res.status(200).json({
-            message: 'Pobrano!',
+            message: 'Pobrano i zapisano!',
         });
 
     } catch (error) {
         console.error('Błąd podczas scrapowania strony:', error);
         res.status(500).json({ error: 'Wystąpił błąd podczas scrapowania' });
     }
-    
-
-    
+      
 });
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+
